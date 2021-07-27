@@ -38,7 +38,7 @@ func (s *Storage) GetPost(id uint64) (models.Article, error) {
 }
 
 func (s *Storage) CreatePost(post models.Article) error {
-	_, err := s.Exec("INSERT INTO posts (title, content, author_id) VALUES ($1, $2, $3)", post.Title, post.Conten, post.AuthorId)
+	_, err := s.Exec("INSERT INTO posts (title, content, author_id) VALUES ($1, $2, $3)", post.Title, post.Content, post.AuthorId)
 	return err
 }
 
