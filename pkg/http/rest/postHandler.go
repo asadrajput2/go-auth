@@ -3,11 +3,13 @@ package rest
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 
 	"github.com/asadrajput2/go-auth/pkg/models"
 	"github.com/asadrajput2/go-auth/pkg/postgres"
+	"github.com/gorilla/mux"
 )
 
 func getAllArticles(db *postgres.Storage, userId interface{}, w http.ResponseWriter, r *http.Request) {
@@ -24,139 +26,62 @@ func getAllArticles(db *postgres.Storage, userId interface{}, w http.ResponseWri
 
 }
 
-// func getSingleArticle(db *postgres.Storage, userId interface{}, w http.ResponseWriter, r *http.Request) {
-// 	fmt.Println("Endpoint hit: single article")
-// 	vars := mux.Vars(r)
-// 	id := vars["id"]
+func GetSingleArticle(db *postgres.Storage, userId interface{}, w http.ResponseWriter, r *http.Request) {
+	fmt.Println("Endpoint hit: single article")
+	vars := mux.Vars(r)
+	id := vars["id"]
 
-// 	// var result Article
-// 	stmt := `SELECT * FROM posts WHERE author_id=$1 AND id=$2;`
-// 	rows, err := db.Query(stmt, userId, id)
-// 	if err != nil {
-// 		log.Fatal(err)
-// 	}
-// 	defer rows.Close()
-// 	var article Article
-// 	for rows.Next() {
-// 		err := rows.Scan(&article.Id, &article.Title, &article.Description, &article.Content, &article.AuthorId)
-// 		if err != nil {
-// 			log.Fatal(err)
-// 		}
-// 	}
-// 	err = rows.Err()
-// 	if err != nil {
-// 		log.Fatal(err)
-// 	}
-// 	json.NewEncoder(w).Encode(article)
+	// var result Article
+	article, err := db.GetPost(id)
 
-// }
+	if err != nil {
+		log.Fatal(err)
+	}
 
-// func deleteArticle(db *Storage, userId interface{}, w http.ResponseWriter, r *http.Request) {
-// 	fmt.Println("Endpoint hit: delete article")
-// 	vars := mux.Vars(r)
-// 	id := vars["id"]
+	json.NewEncoder(w).Encode(article)
 
-// 	stmt := `DELETE FROM posts WHERE id=$1 RETURNING id`
+}
 
-// 	rows, err := db.Query(stmt, id)
-// 	if err != nil {
-// 		log.Fatal(err)
-// 	}
+func DeleteArticle(db *postgres.Storage, userId interface{}, w http.ResponseWriter, r *http.Request) {
+	fmt.Println("Endpoint hit: delete article")
+	vars := mux.Vars(r)
+	id := vars["id"]
 
-// 	defer rows.Close()
-// 	var deleted_id int
+	err := db.DeletePost(id)
+	if err != nil {
+		log.Fatal(err)
+	}
+	json.NewEncoder(w).Encode(map[string]string{"message": "success"})
+}
 
-// 	for rows.Next() {
-// 		err = rows.Scan(&deleted_id)
-// 		if err != nil {
-// 			log.Fatal(err)
-// 		}
-// 	}
+func CreateArticle(db *postgres.Storage, userId interface{}, w http.ResponseWriter, r *http.Request) {
+	fmt.Println("Endpoint hit: create article")
+	reqBody, _ := ioutil.ReadAll(r.Body)
 
-// 	err = rows.Err()
+	var article models.Article
+	json.Unmarshal(reqBody, &article)
 
-// 	if err != nil {
-// 		log.Fatal(err)
-// 	}
+	err := db.CreatePost(article, userId)
+	if err != nil {
+		log.Fatal(err)
+	}
 
-// 	json.NewEncoder(w).Encode(deleted_id)
-// }
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{"message": "success"})
+}
 
-// func createArticle(db *Storage, userId interface{}, w http.ResponseWriter, r *http.Request) {
-// 	fmt.Println("Endpoint hit: create article")
-// 	reqBody, _ := ioutil.ReadAll(r.Body)
+func UpdateArticle(db *postgres.Storage, userId interface{}, w http.ResponseWriter, r *http.Request) {
+	fmt.Println("Endpoint hit: update article")
+	reqBody, _ := ioutil.ReadAll(r.Body)
 
-// 	var article Article
-// 	json.Unmarshal(reqBody, &article)
+	var new_article models.Article
+	json.Unmarshal(reqBody, &new_article)
+	vars := mux.Vars(r)
+	id := vars["id"]
 
-// 	// TODO: get and add author id
-// 	stmt := `
-// 			INSERT INTO posts (title, description, content, author_id)
-// 			VALUES ($1, $2, $3, $4) RETURNING *;
-// 		`
-
-// 	rows, err := db.Query(stmt, article.Title, article.Description, article.Content, userId)
-
-// 	if err != nil {
-// 		log.Fatal(err)
-// 	}
-
-// 	defer rows.Close()
-
-// 	var return_article Article
-// 	for rows.Next() {
-// 		err = rows.Scan(&return_article.Id, &return_article.Title, &return_article.Description, &return_article.Content, &return_article.AuthorId)
-// 		if err != nil {
-// 			log.Fatal(err)
-// 		}
-// 	}
-
-// 	err = rows.Err()
-// 	if err != nil {
-// 		log.Fatal(err)
-// 	}
-// 	w.Header().Set("Content-Type", "application/json")
-// 	json.NewEncoder(w).Encode(map[string]interface{}{"message": "success",
-// 		"data": return_article})
-// }
-
-// func updateArticle(db *Storage, userId interface{}, w http.ResponseWriter, r *http.Request) {
-// 	fmt.Println("Endpoint hit: update article")
-// 	reqBody, _ := ioutil.ReadAll(r.Body)
-
-// 	var new_article Article
-// 	json.Unmarshal(reqBody, &new_article)
-// 	vars := mux.Vars(r)
-// 	id := vars["id"]
-
-// 	stmt := `UPDATE posts SET
-// 			title=$1,
-// 			description=$2,
-// 			content=$3
-// 			WHERE id=$4
-// 			RETURNING *;
-// 		`
-
-// 	rows, err := db.Query(stmt, new_article.Title, new_article.Description, new_article.Content, id)
-
-// 	if err != nil {
-// 		log.Fatal(err)
-// 	}
-// 	defer rows.Close()
-
-// 	var return_article Article
-// 	for rows.Next() {
-// 		err = rows.Scan(&return_article.Id, &return_article.Title, &return_article.Description, &return_article.Content, &return_article.AuthorId)
-// 		if err != nil {
-// 			log.Fatal(err)
-// 		}
-// 	}
-
-// 	err = rows.Err()
-
-// 	if err != nil {
-// 		log.Fatal(err)
-// 	}
-
-// 	json.NewEncoder(w).Encode(return_article)
-// }
+	err := db.UpdatePost(new_article, id)
+	if err != nil {
+		log.Fatal(err)
+	}
+	json.NewEncoder(w).Encode(map[string]interface{}{"message": "success"})
+}
